@@ -232,19 +232,20 @@ public class Utils {
     static int[] getImageDimensBasedOnConstraints(int origWidth, int origHeight, Options options) {
         int width = origWidth;
         int height = origHeight;
-
         if (options.maxWidth == 0 || options.maxHeight == 0) {
             return new int[]{width, height};
         }
 
-        if (options.maxWidth < width) {
-            height = (int) (((float) options.maxWidth / width) * height);
-            width = options.maxWidth;
-        }
-
-        if (options.maxHeight < height) {
-            width = (int) (((float) options.maxHeight / height) * width);
-            height = options.maxHeight;
+        if (width < height) {
+            if (options.maxWidth < width) {
+                height = (int) (((float) options.maxWidth / width) * height);
+                width = options.maxWidth;
+            }
+        } else {
+            if (options.maxHeight < height) {
+                width = (int) (((float) options.maxHeight / height) * width);
+                height = options.maxHeight;
+            }
         }
 
         return new int[]{width, height};
