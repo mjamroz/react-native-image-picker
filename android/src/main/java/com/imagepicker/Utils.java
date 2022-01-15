@@ -214,6 +214,14 @@ public class Utils {
         }
     }
 
+    static double getLatitude(Uri uri, Context context) throws IOException {
+        ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
+        return exifInterface.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
+    }
+    static double getLongitude(Uri uri, Context context) throws IOException {
+        ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
+        return exifInterface.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
+    }
     static String getOrientation(Uri uri, Context context) throws IOException {
         ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
         return exifInterface.getAttribute(ExifInterface.TAG_ORIENTATION);
@@ -402,6 +410,8 @@ public class Utils {
         map.putInt("width", dimensions[0]);
         map.putInt("height", dimensions[1]);
         map.putString("type", getMimeType(uri, context));
+        map.putDouble("latitude", getLatitude(uri, context));
+        map.putDouble("longitude", getLongitude(uri, context));
 
         if (options.includeBase64) {
             map.putString("base64", getBase64String(uri, context));
