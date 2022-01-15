@@ -201,11 +201,15 @@ public class Utils {
             Bitmap b = BitmapFactory.decodeStream(imageStream);
             b = Bitmap.createScaledBitmap(b, newDimens[0], newDimens[1], true);
             String originalOrientation = getOrientation(uri, context);
+            String lat = getLatitude(uri, context);
+            String lon = getLongitude(uri, context);
+            String latr = getLatitudeRef(uri, context);
+            String lonr = getLongitudeRef(uri, context);
 
             File file = createFile(context, getFileTypeFromMime(mimeType));
             OutputStream os = context.getContentResolver().openOutputStream(Uri.fromFile(file));
             b.compress(getBitmapCompressFormat(mimeType), options.quality, os);
-            setOrientation(file, originalOrientation, context);
+            setOrientation(file, originalOrientation, lat, lon, latr, lonr, context);
             return Uri.fromFile(file);
 
         } catch (Exception e) {
@@ -214,13 +218,21 @@ public class Utils {
         }
     }
 
-    static double getLatitude(Uri uri, Context context) throws IOException {
+    static String getLatitude(Uri uri, Context context) throws IOException {
         ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
         return exifInterface.getAttribute(ExifInterface.TAG_GPS_LATITUDE);
     }
-    static double getLongitude(Uri uri, Context context) throws IOException {
+    static String getLongitude(Uri uri, Context context) throws IOException {
         ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
         return exifInterface.getAttribute(ExifInterface.TAG_GPS_LONGITUDE);
+    }
+    static String getLatitudeRef(Uri uri, Context context) throws IOException {
+        ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
+        return exifInterface.getAttribute(ExifInterface.TAG_GPS_LATITUDE_REF);
+    }
+    static String getLongitudeRef(Uri uri, Context context) throws IOException {
+        ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
+        return exifInterface.getAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF);
     }
     static String getOrientation(Uri uri, Context context) throws IOException {
         ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
@@ -228,12 +240,13 @@ public class Utils {
     }
 
     // ExifInterface.saveAttributes is costly operation so don't set exif for unnecessary orientations
-    static void setOrientation(File file, String orientation, Context context) throws IOException {
-        if (orientation.equals(String.valueOf(ExifInterface.ORIENTATION_NORMAL)) || orientation.equals(String.valueOf(ExifInterface.ORIENTATION_UNDEFINED))) {
-            return;
-        }
+    static void setOrientation(File file, String orientation, String lat, String lon, String latr, String lonr, Context context) throws IOException {
         ExifInterface exifInterface = new ExifInterface(file);
         exifInterface.setAttribute(ExifInterface.TAG_ORIENTATION, orientation);
+        exifInterface.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, latr);
+        exifInterface.setAttribute(ExifInterface.TAG_GPS_LATITUDE, lat);
+        exifInterface.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, lonr);
+        exifInterface.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, lon);
         exifInterface.saveAttributes();
     }
 
@@ -410,8 +423,15 @@ public class Utils {
         map.putInt("width", dimensions[0]);
         map.putInt("height", dimensions[1]);
         map.putString("type", getMimeType(uri, context));
-        map.putDouble("latitude", getLatitude(uri, context));
-        map.putDouble("longitude", getLongitude(uri, context));
+        try {
+            ExifInterface exifInterface = new ExifInterface(context.getContentResolver().openInputStream(uri));
+            float[] latlong = new float[2];
+            boolean fff = exifInterface.getLatLong(latlong);
+            map.putDouble("latitude", latlong[0]);
+            map.putDouble("longitude", latlong[1]);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         if (options.includeBase64) {
             map.putString("base64", getBase64String(uri, context));
